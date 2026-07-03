@@ -5,7 +5,9 @@
   "description": "Watches a folder for new AI-generated test footage, uploads it to Vimeo, and publishes a captioned gallery feed for embedding on Cargo.",
   "type": "module",
   "scripts": {
-    "watch": "node scripts/watch-and-upload.js"
+    "watch": "node scripts/watch-and-upload.js",
+    "rename": "node scripts/rename-video.js",
+    "delete": "node scripts/delete-video.js"
   },
   "dependencies": {
     "@vimeo/vimeo": "^3.0.3",

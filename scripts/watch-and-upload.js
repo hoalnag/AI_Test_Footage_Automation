@@ -1,14 +1,14 @@
 import "dotenv/config";
 import chokidar from "chokidar";
 import prompts from "prompts";
-import { execSync } from "child_process";
 import { renameSync, existsSync, mkdirSync } from "fs";
 import { basename, join, extname } from "path";
 import { fileURLToPath } from "url";
 
-import { uploadVideo, waitUntilAvailable } from "../lib/vimeo.js";
+import { uploadVideo, waitUntilAvailable, moveToFolder } from "../lib/vimeo.js";
 import { readManifest, addVideoEntry, makeSlug } from "../lib/manifest.js";
 import { writePromptPage } from "../lib/promptPage.js";
+import { publish } from "../lib/publish.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const INCOMING_DIR = join(ROOT, "incoming");
@@ -40,7 +40,7 @@ async function processVideo(filePath) {
     {
       type: "text",
       name: "caption",
-      message: "Caption (short label shown under the video)",
+      message: "Video title (used as the Vimeo title AND the caption on your site)",
       validate: (v) => (v.trim() ? true : "Required"),
     },
     {
@@ -52,7 +52,7 @@ async function processVideo(filePath) {
   ]);
 
   if (!answers.caption || !answers.prompt) {
-    console.log("Skipped (no caption/prompt provided).");
+    console.log("Skipped (no title/prompt provided).");
     return;
   }
 
@@ -62,6 +62,9 @@ async function processVideo(filePath) {
     description: answers.prompt,
   });
   console.log(`\nUploaded: ${uri}`);
+
+  console.log("Filing into the Vimeo folder...");
+  await moveToFolder(uri);
 
   console.log("Waiting for Vimeo to finish transcoding (this can take a minute)...");
   const ready = await waitUntilAvailable(uri);
@@ -91,22 +94,8 @@ async function processVideo(filePath) {
 
   renameSync(filePath, join(UPLOADED_DIR, fileName));
 
-  publish(fileName);
+  publish(`Add video: ${fileName}`);
 
   console.log(`Done. "${answers.caption}" is live in docs/videos.json (slug: ${slug}).\n`);
   console.log(`Watching ${INCOMING_DIR} for the next video...\n`);
-}
-
-function publish(fileName) {
-  try {
-    execSync("git add docs/", { cwd: ROOT });
-    execSync(`git commit -m "Add video: ${fileName.replace(/"/g, "'")}"`, { cwd: ROOT });
-    execSync("git push", { cwd: ROOT });
-    console.log("Pushed update to GitHub — GitHub Pages will refresh shortly.");
-  } catch (err) {
-    console.warn(
-      "Could not auto-commit/push (is the git remote configured?). Run `git push` manually when ready.\n" +
-        err.message
-    );
-  }
 }

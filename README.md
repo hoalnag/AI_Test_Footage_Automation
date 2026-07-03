@@ -30,6 +30,13 @@ switch to OAuth later.)
 npm install
 ```
 
+Optional: if you want new uploads to land in a specific Vimeo folder, set
+`VIMEO_FOLDER_URI` in `.env` (e.g. `/users/12345/projects/67890`). You can find
+a folder's URI with:
+```
+curl -s -H "Authorization: Bearer $VIMEO_ACCESS_TOKEN" "https://api.vimeo.com/me/projects?fields=uri,name"
+```
+
 ### 3. Publish this repo with GitHub Pages
 
 1. Create a new **public** GitHub repo and push this project to it:
@@ -62,12 +69,12 @@ npm run watch
 Leave this running, then drop a video file (`.mp4`, `.mov`, `.m4v`, `.webm`)
 into `incoming/`. You'll be prompted in the terminal for:
 
-- **Caption** — the short label shown under the video on your site.
+- **Video title** — used as both the Vimeo title and the caption shown under the video on your site (always in sync, since it's one input).
 - **Prompt** — the AI prompt used to generate the video (shown on the detail page).
 
 The script then:
 
-1. Uploads the video to Vimeo.
+1. Uploads the video to Vimeo (and files it into `VIMEO_FOLDER_URI` if set).
 2. Waits for Vimeo to finish transcoding.
 3. Adds an entry to `docs/videos.json` and generates `docs/prompts/<slug>.html`.
 4. Moves the source file from `incoming/` to `uploaded/` (kept locally as a backup, not uploaded to git).
@@ -76,6 +83,26 @@ The script then:
 
 To preview the gallery locally before it's live, run a static server against
 `docs/` (e.g. `npx serve docs`) and open `index.html`.
+
+### Re-titling a video
+
+```
+npm run rename
+```
+
+Pick a video from the list, type a new title — it updates the Vimeo title and
+the site caption together (they're always the same value), regenerates the
+prompt page, and pushes.
+
+### Deleting a video
+
+```
+npm run delete
+```
+
+Pick a video, confirm — it's permanently deleted from Vimeo, removed from
+`docs/videos.json`, its prompt page is deleted, and the change is pushed. This
+can't be undone.
 
 ## Notes
 
