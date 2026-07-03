@@ -1,0 +1,40 @@
+<!--
+  Paste this whole block into a Cargo "Custom Code" / "Embed" element on your
+  test footage page. Only one thing to edit: SITE_BASE_URL below.
+-->
+<div id="test-footage-gallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;"></div>
+<script>
+(function () {
+  // Replace with your GitHub Pages URL, no trailing slash.
+  // Example: "https://yourname.github.io/AI_Test_Footage_Automation"
+  var SITE_BASE_URL = "https://YOUR-GITHUB-USERNAME.github.io/AI_Test_Footage_Automation";
+
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  fetch(SITE_BASE_URL + "/videos.json")
+    .then(function (res) { return res.json(); })
+    .then(function (videos) {
+      var el = document.getElementById("test-footage-gallery");
+      videos.forEach(function (v) {
+        var card = document.createElement("div");
+        card.innerHTML =
+          '<div style="aspect-ratio:16/9;">' +
+            '<iframe src="https://player.vimeo.com/video/' + encodeURIComponent(v.vimeoId) + '" ' +
+            'style="width:100%;height:100%;border:0;" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen></iframe>' +
+          '</div>' +
+          '<a href="' + SITE_BASE_URL + '/prompts/' + encodeURIComponent(v.slug) + '.html" ' +
+          'style="display:block;margin-top:8px;font-size:14px;color:inherit;text-decoration:none;">' +
+            escapeHtml(v.caption) +
+          '</a>';
+        el.appendChild(card);
+      });
+    })
+    .catch(function (err) {
+      console.error("Failed to load test footage gallery:", err);
+    });
+})();
+</script>

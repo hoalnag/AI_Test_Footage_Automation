@@ -1,0 +1,17 @@
+{
+  "name": "ai-test-footage-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Watches a folder for new AI-generated test footage, uploads it to Vimeo, and publishes a captioned gallery feed for embedding on Cargo.",
+  "type": "module",
+  "scripts": {
+    "watch": "node scripts/watch-and-upload.js"
+  },
+  "dependencies": {
+    "@vimeo/vimeo": "^3.0.3",
+    "chokidar": "^3.6.0",
+    "dotenv": "^16.4.5",
+    "prompts": "^2.4.2",
+    "slugify": "^1.6.6"
+  }
+}
