@@ -5,6 +5,12 @@
 <div id="test-footage-gallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;"></div>
 <script>
 (function () {
+  // Guards against this script executing more than once on the same page
+  // (some site builders keep a hidden responsive/mobile copy of a block in
+  // the DOM that still runs its scripts) — without this, videos get rendered twice.
+  if (window.__testFootageGalleryInitialized) return;
+  window.__testFootageGalleryInitialized = true;
+
   var SITE_BASE_URL = "https://hoalnag.github.io/AI_Test_Footage_Automation";
 
   function escapeHtml(str) {
@@ -17,6 +23,8 @@
     .then(function (res) { return res.json(); })
     .then(function (videos) {
       var el = document.getElementById("test-footage-gallery");
+      if (!el) return;
+      el.innerHTML = "";
       videos.forEach(function (v) {
         var card = document.createElement("div");
         card.innerHTML =
