@@ -1,7 +1,7 @@
 import "dotenv/config";
 import chokidar from "chokidar";
 import prompts from "prompts";
-import { renameSync, existsSync, mkdirSync } from "fs";
+import { renameSync, existsSync, mkdirSync, readFileSync } from "fs";
 import { basename, join, extname } from "path";
 import { fileURLToPath } from "url";
 
@@ -36,22 +36,37 @@ async function processVideo(filePath) {
   const fileName = basename(filePath);
   console.log(`\nNew file detected: ${fileName}`);
 
-  const answers = await prompts([
+  const sidecarPath = filePath.slice(0, -extname(filePath).length) + ".txt";
+  const hasSidecar = existsSync(sidecarPath);
+  const promptFromFile = hasSidecar ? readFileSync(sidecarPath, "utf8").trim() : null;
+
+  if (hasSidecar) {
+    console.log(`Using prompt text from ${basename(sidecarPath)}`);
+  } else {
+    console.log("Tip: for long prompts, drop a matching .txt file next to the video instead of pasting here — long terminal pastes can get silently truncated.");
+  }
+
+  const questions = [
     {
       type: "text",
       name: "caption",
       message: "Video title (used as the Vimeo title AND the caption on your site)",
       validate: (v) => (v.trim() ? true : "Required"),
     },
-    {
+  ];
+  if (!hasSidecar) {
+    questions.push({
       type: "text",
       name: "prompt",
       message: "AI prompt used to generate this video",
       validate: (v) => (v.trim() ? true : "Required"),
-    },
-  ]);
+    });
+  }
 
-  if (!answers.caption || !answers.prompt) {
+  const answers = await prompts(questions);
+  const prompt = promptFromFile || answers.prompt;
+
+  if (!answers.caption || !prompt) {
     console.log("Skipped (no title/prompt provided).");
     return;
   }
@@ -59,7 +74,7 @@ async function processVideo(filePath) {
   console.log("Uploading to Vimeo...");
   const { uri, id } = await uploadVideo(filePath, {
     name: answers.caption,
-    description: answers.prompt,
+    description: prompt,
   });
   console.log(`\nUploaded: ${uri}`);
 
@@ -80,19 +95,21 @@ async function processVideo(filePath) {
     slug,
     vimeoId: id,
     caption: answers.caption,
-    prompt: answers.prompt,
+    prompt,
     uploadedAt,
   });
 
   writePromptPage({
     slug,
     caption: answers.caption,
-    prompt: answers.prompt,
+    prompt,
     vimeoId: id,
     uploadedAt,
+    galleryUrl: process.env.GALLERY_URL,
   });
 
   renameSync(filePath, join(UPLOADED_DIR, fileName));
+  if (hasSidecar) renameSync(sidecarPath, join(UPLOADED_DIR, basename(sidecarPath)));
 
   publish(`Add video: ${fileName}`);
 

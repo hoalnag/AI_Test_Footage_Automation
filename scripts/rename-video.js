@@ -45,6 +45,7 @@ writePromptPage({
   prompt: updated.prompt,
   vimeoId: updated.vimeoId,
   uploadedAt: updated.uploadedAt,
+  galleryUrl: process.env.GALLERY_URL,
 });
 
 publish(`Rename video: ${slug} -> "${title}"`);
