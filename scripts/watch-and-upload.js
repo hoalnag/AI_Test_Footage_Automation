@@ -1,6 +1,5 @@
 import "dotenv/config";
 import chokidar from "chokidar";
-import prompts from "prompts";
 import { renameSync, existsSync, mkdirSync, readFileSync } from "fs";
 import { basename, join, extname } from "path";
 import { fileURLToPath } from "url";
@@ -9,6 +8,7 @@ import { uploadVideo, waitUntilAvailable, moveToFolder } from "../lib/vimeo.js";
 import { readManifest, addVideoEntry, makeSlug } from "../lib/manifest.js";
 import { writePromptPage } from "../lib/promptPage.js";
 import { publish } from "../lib/publish.js";
+import { askText } from "../lib/dialog.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const INCOMING_DIR = join(ROOT, "incoming");
@@ -40,40 +40,31 @@ async function processVideo(filePath) {
   const hasSidecar = existsSync(sidecarPath);
   const promptFromFile = hasSidecar ? readFileSync(sidecarPath, "utf8").trim() : null;
 
-  if (hasSidecar) {
-    console.log(`Using prompt text from ${basename(sidecarPath)}`);
-  } else {
-    console.log("Tip: for long prompts, drop a matching .txt file next to the video instead of pasting here — long terminal pastes can get silently truncated.");
+  if (hasSidecar) console.log(`Using prompt text from ${basename(sidecarPath)}`);
+
+  console.log("Waiting for you to fill in a popup dialog...");
+  const caption = askText(`Video title for "${fileName}"\n(used as the Vimeo title AND the caption on your site)`, {
+    title: "New Test Footage",
+  });
+
+  if (!caption || !caption.trim()) {
+    console.log("Skipped (no title provided).");
+    return;
   }
 
-  const questions = [
-    {
-      type: "text",
-      name: "caption",
-      message: "Video title (used as the Vimeo title AND the caption on your site)",
-      validate: (v) => (v.trim() ? true : "Required"),
-    },
-  ];
-  if (!hasSidecar) {
-    questions.push({
-      type: "text",
-      name: "prompt",
-      message: "AI prompt used to generate this video",
-      validate: (v) => (v.trim() ? true : "Required"),
-    });
+  let prompt = promptFromFile;
+  if (!prompt) {
+    prompt = askText("AI prompt used to generate this video", { title: "New Test Footage" });
   }
 
-  const answers = await prompts(questions);
-  const prompt = promptFromFile || answers.prompt;
-
-  if (!answers.caption || !prompt) {
-    console.log("Skipped (no title/prompt provided).");
+  if (!prompt || !prompt.trim()) {
+    console.log("Skipped (no prompt provided).");
     return;
   }
 
   console.log("Uploading to Vimeo...");
   const { uri, id } = await uploadVideo(filePath, {
-    name: answers.caption,
+    name: caption,
     description: prompt,
   });
   console.log(`\nUploaded: ${uri}`);
@@ -88,20 +79,20 @@ async function processVideo(filePath) {
   }
 
   const existing = readManifest();
-  const slug = makeSlug(answers.caption, existing);
+  const slug = makeSlug(caption, existing);
   const uploadedAt = new Date().toISOString();
 
   addVideoEntry({
     slug,
     vimeoId: id,
-    caption: answers.caption,
+    caption,
     prompt,
     uploadedAt,
   });
 
   writePromptPage({
     slug,
-    caption: answers.caption,
+    caption,
     prompt,
     vimeoId: id,
     uploadedAt,
@@ -113,6 +104,6 @@ async function processVideo(filePath) {
 
   publish(`Add video: ${fileName}`);
 
-  console.log(`Done. "${answers.caption}" is live in docs/videos.json (slug: ${slug}).\n`);
+  console.log(`Done. "${caption}" is live in docs/videos.json (slug: ${slug}).\n`);
   console.log(`Watching ${INCOMING_DIR} for the next video...\n`);
 }

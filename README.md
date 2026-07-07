@@ -67,10 +67,22 @@ npm run watch
 ```
 
 Leave this running, then drop a video file (`.mp4`, `.mov`, `.m4v`, `.webm`)
-into `incoming/`. You'll be prompted in the terminal for:
+into `incoming/`. A macOS popup dialog appears (you don't need to switch to
+the terminal) asking for:
 
 - **Video title** — used as both the Vimeo title and the caption shown under the video on your site (always in sync, since it's one input).
-- **Prompt** — the AI prompt used to generate the video (shown on the detail page).
+- **Prompt** — the AI prompt used to generate the video (shown on the detail page), unless a matching `.txt` sidecar file was found (see below).
+
+Using a real dialog box (instead of a terminal prompt) means pasting a long,
+multi-paragraph prompt won't get silently truncated.
+
+### Long prompts: sidecar `.txt` files
+
+Optionally, drop a text file with the same name as the video (e.g. `myclip.mp4`
++ `myclip.txt`) into `incoming/` before or alongside the video. If found, its
+contents are used as the prompt automatically and you won't be asked for it —
+useful if you want to compose/edit the prompt in a text editor first, or reuse
+one across similar clips.
 
 The script then:
 
